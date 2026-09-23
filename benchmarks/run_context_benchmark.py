@@ -17,10 +17,6 @@ from agent_sufficiency_system import (
 )
 
 
-def pct(x: float) -> str:
-    return f"{100.0*x:.1f}%"
-
-
 def percentile(xs: list[float], p: float) -> float:
     if not xs:
         return 0.0
