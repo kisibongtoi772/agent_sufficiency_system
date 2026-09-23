@@ -127,7 +127,10 @@ def run(repo: Path, outdir: Path, tasks_n: int, seed: int) -> dict[str, object]:
     }
     result = {"metadata": metadata, "summary": summary, "rows": rows}
 
-    (outdir / "results.json").write_text(\n        json.dumps({"metadata": metadata, "summary": summary}, indent=2),\n        encoding="utf-8",\n    )
+    (outdir / "results.json").write_text(
+        json.dumps({"metadata": metadata, "summary": summary}, indent=2),
+        encoding="utf-8",
+    )
     with (outdir / "results.csv").open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
