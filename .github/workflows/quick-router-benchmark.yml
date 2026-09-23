@@ -1,0 +1,23 @@
+name: Quick live routing benchmark
+on:
+  push:
+    paths:
+      - "benchmarks/run_quick_router_benchmark.py"
+      - ".github/workflows/quick-router-benchmark.yml"
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run benchmark
+        run: python benchmarks/run_quick_router_benchmark.py
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-routing-results
+          path: results/model_routing_quick
