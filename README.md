@@ -16,10 +16,6 @@ This project studies two complementary questions:
 
 The prototype is intentionally small and framework-agnostic so each source of savings can be measured independently.
 
-![Benchmark overview generated from repository results](assets/benchmark_overview.svg)
-
-The visualization above is generated directly from the checked-in benchmark JSON files:
-
 ```bash
 python scripts/generate_visualization.py
 ```
