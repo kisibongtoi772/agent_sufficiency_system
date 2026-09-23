@@ -9,12 +9,12 @@ Agent Sufficiency
 + minimum net-new reasoning
 ```
 
-This project explores two complementary ways to make tool-using agents more efficient:
+This project studies two complementary questions:
 
-1. **Context sufficiency** — send only the smallest useful working set to the model.
-2. **Capability sufficiency** — search and reuse existing capabilities before generating new code.
+1. **Context sufficiency** — what is the minimum useful context the model needs?
+2. **Capability sufficiency** — does the agent need to build this at all, or can it reuse something that already exists?
 
-The current prototype is intentionally small and framework-agnostic so each source of savings can be measured independently.
+The prototype is intentionally small and framework-agnostic so each source of savings can be measured independently.
 
 ---
 
@@ -22,7 +22,7 @@ The current prototype is intentionally small and framework-agnostic so each sour
 
 ### 1. Context efficiency
 
-Deterministic 40-task code-navigation benchmark on NetworkX:
+Deterministic **40-task code-navigation benchmark** on NetworkX:
 
 | Metric | Raw grep/read | Token-min hybrid | Improvement |
 |---|---:|---:|---:|
@@ -43,7 +43,7 @@ Compact + lazy tools        8,984  ██████████████
 Token-min hybrid            3,151  █████
 ```
 
-The main finding is that **structural retrieval alone is not enough**. The largest reduction comes from combining:
+The largest reduction comes from combining:
 
 ```text
 structural retrieval
@@ -73,63 +73,74 @@ Deterministic benchmark with **30 unique capabilities × 4 repetitions = 120 req
 | Capability-cache hits | 0 | **90 / 120** | **75% of all requests** |
 | Work-proxy tokens | 233,180 | **30,811** | **-86.8%** |
 
-Search order:
-
 ```text
-local cache
-   ↓ miss
-current repo
-   ↓ miss
-package ecosystem
-   ↓ miss
-MCP
-   ↓ miss
-skills
-   ↓ miss
-GitHub / OSS
-   ↓ miss
-synthesize + validate
-   ↓
-remember for reuse
+Net-new implementations / 120 requests
+
+Build every time             120  ████████████████████████████████████████
+Search-first stateless        32  ███████████
+Search-first + build cache     8  ███
+Search-first learning          8  ███
+                                   ↓
+                              93.3% fewer
 ```
 
-The strongest structural result is:
+```text
+Estimated implementation-work proxy
+
+Build every time          233,180  ████████████████████████████████████████
+Search-first stateless     75,940  █████████████
+Build cache                31,366  █████
+Search-first learning      30,811  █████
+                                   ↓
+                              86.8% lower
+```
+
+Search-first learning turns repeated implementation into reuse:
 
 ```text
-new implementations
-120  →  8
-       -93.3%
+cache → repo → package → MCP → skills → GitHub/OSS
+                                          │
+                                          └─ miss → synthesize + validate
+                                                       │
+                                                       ▼
+                                                  remember
+                                                       │
+                                                       └─ future request → cache hit
 ```
+
+The strongest structural result is **120 → 8 new implementations**.
 
 ---
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    A[Task] --> B[Capability Resolver]
+The system has two stages: **reuse as much capability as possible first, then minimize the context required to use it**.
 
-    B --> C[Cache]
-    C -->|miss| D[Repo / Package / MCP / Skill / OSS]
+```mermaid
+flowchart TD
+    A[Task] --> B[1. Capability Resolver]
+
+    B --> C[Local Capability Cache]
+    C -->|miss| D[Repo → Package → MCP → Skills → GitHub / OSS]
     D -->|miss| E[Synthesize + Validate]
 
-    D -->|hit| F[Capability Library]
+    C -->|hit| F[Resolved Capability]
+    D -->|hit| F
     E --> F
-    C -->|hit| G[Context Compiler]
-    F --> G
 
-    G --> H[Structural Retrieval]
-    G --> I[Lazy Tools]
-    G --> J[Compact Memory]
+    F --> G[Remember in Capability Library]
+    G --> H[2. Context Compiler]
 
-    H --> K[Minimum Sufficient Context]
-    I --> K
-    J --> K
+    H --> I[Structural Retrieval]
+    H --> J[Lazy Tool Loading]
+    H --> K[Compact External Memory]
 
-    K --> L[LLM / Agent Runtime]
+    I --> L[Minimum Sufficient Context]
+    J --> L
+    K --> L
+
+    L --> M[LLM / Agent Runtime]
 ```
-
-Two optimization loops work together:
 
 ```text
 Capability loop
@@ -139,20 +150,31 @@ Context loop
 retrieve → budget → compile → model → checkpoint
 ```
 
-The first minimizes **how often new work must be created**.  
-The second minimizes **how much information the model must process**.
+The capability layer minimizes **how often new work is created**.  
+The context layer minimizes **how much information the model processes**.
 
 ---
 
 ## Optimization strategy
 
-The prototype currently applies five ideas:
+- **Search before synthesis** — only build after reuse paths miss.
+- **Learn after first use** — cache validated capabilities for later requests.
+- **Retrieve structure, not whole files** — use symbol-level AST context.
+- **Load tools lazily** — expose only relevant schemas.
+- **Keep memory external** — checkpoint state instead of replaying full history.
 
-- **Search before synthesis** — do not implement a capability until local and external reuse paths miss.
-- **Learn after first use** — cache validated capabilities so repeated requests collapse to lookup.
-- **Retrieve structure, not whole files** — use symbol-level AST context and small dependency neighborhoods.
-- **Load tools lazily** — expose only the schemas needed for the current task.
-- **Keep memory external** — retain compact checkpoints instead of replaying full transcripts and tool outputs.
+---
+
+## Roadmap
+
+| Phase | Goal | Status |
+|---|---|---|
+| **1. Context Sufficiency** | Structural retrieval + lazy tools + compact memory | ✅ Done |
+| **2. Capability Sufficiency** | Search-first resolver + capability cache | ✅ Prototype + benchmark |
+| **3. Live Capability Discovery** | Real package/MCP/skill/GitHub providers, semantic matching, compatibility scoring | 🚧 Next |
+| **4. End-to-End Validation** | Same real LLM across policies; measure pass@1, billed tokens, latency, tool calls, cost / solved task | ⏭ Planned |
+
+Longer-term: adaptive context budgets, learned routing, multi-language code indexing, and persistent capability quality scoring.
 
 ---
 
@@ -190,7 +212,7 @@ PYTHONPATH=src python benchmarks/run_capability_benchmark.py --out results/capab
 
 ## References and limitations
 
-Detailed methodology, assumptions, and source notes live outside the README:
+Detailed methodology and assumptions live in the benchmark reports:
 
 - **[REPORT.md](REPORT.md)** — context benchmark methodology and research notes
 - **[results/results.csv](results/results.csv)** — raw context measurements
@@ -198,6 +220,6 @@ Detailed methodology, assumptions, and source notes live outside the README:
 - **[results/capability_reuse/REPORT.md](results/capability_reuse/REPORT.md)** — capability benchmark
 - **[results/capability_reuse/results.json](results/capability_reuse/results.json)** — aggregate capability results
 
-The checked-in context run used the transparent `ceil(chars / 4)` token estimate because `tiktoken` was unavailable in that environment. The capability benchmark uses deterministic offline search fixtures and a plan/code/test/debug **work proxy**; those proxy tokens are not billed LLM tokens.
+The checked-in context run used the transparent `ceil(chars / 4)` estimate because `tiktoken` was unavailable in that environment. The capability benchmark uses deterministic offline search fixtures and a plan/code/test/debug **work proxy**; those proxy tokens are not billed LLM tokens.
 
-The next important validation step is an end-to-end benchmark with the **same real model** across policies, measuring task success, billed tokens, tool calls, latency, and cost per solved task.
+The next critical validation is an end-to-end benchmark with the **same real model** across policies, measuring task success, actual billed tokens, latency, tool calls, and cost per solved task.
