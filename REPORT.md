@@ -35,9 +35,36 @@ They solve different layers, so a direct “which uses fewer tokens?” comparis
 
 The practical architecture is therefore **LangGraph (or an even smaller custom runtime) + Graphify-like structural retrieval + explicit token-budgeted context compiler**.
 
+## Experiment 2 — Search-first capability reuse
+
+The second experiment places a capability resolver before synthesis:
+
+```text
+cache -> repo -> package -> MCP -> skill -> GitHub/OSS -> synthesize
+```
+
+It uses 30 deterministic capability requests, repeated four times for 120 requests total. Twenty-two unique capabilities are deliberately available in one of the search layers; eight are true misses that require synthesis on first encounter.
+
+| Policy | New implementations | Reuse rate | Cache hits | Search probes | Total work-proxy tokens |
+|---|---:|---:|---:|---:|---:|
+| Build every time | 120 | 0.0% | 0 | 0 | 233,180 |
+| Search-first stateless | 32 | 73.3% | 0 | 532 | 75,940 |
+| Search-first + generated cache | 8 | 93.3% | 24 | 412 | 31,366 |
+| **Search-first learning** | **8** | **93.3%** | **90** | **223** | **30,811** |
+
+The learning policy therefore reduces net-new implementation events by **93.3% (120 -> 8)**. Its compact capability cache handles **75% of all requests** after first-use learning. The deterministic work proxy falls by **86.8%**, but this proxy is not observed API billing: it counts a fixed plan/code/test/debug artifact to make avoided implementation work measurable.
+
+The important structural result is not the exact proxy-token number; it is that searching before building and remembering validated capabilities turns repeated implementation into lookup/reuse.
+
+Full artifact: [results/capability_reuse/REPORT.md](results/capability_reuse/REPORT.md).
+
+### Capability benchmark limitations
+
+The repo/package/MCP/skill/GitHub sources in this experiment are deterministic offline fixtures. They make the benchmark reproducible, but they are not live registry searches. Production integration should replace those catalogs with real providers while keeping the same resolver interface and search order. Matching is currently exact/alias based; semantic matching and compatibility scoring remain future work.
+
 ## Important limitation
 
-This is a **context-efficiency benchmark, not an end-to-end coding-quality benchmark**. Ground-truth coverage verifies that the target file/symbol survives compression, but no LLM was available in the sandbox to judge whether a generated patch is correct. The next serious benchmark should hold the model fixed and compare pass@1/task success, total billed input/output tokens, tool calls, latency, and dollars per solved task.
+The context benchmark is a **context-efficiency benchmark, not an end-to-end coding-quality benchmark**. Ground-truth coverage verifies that the target file/symbol survives compression, but no LLM was available in the sandbox to judge whether a generated patch is correct. The next serious benchmark should hold the model fixed and compare pass@1/task success, total billed input/output tokens, tool calls, latency, and dollars per solved task.
 
 ## Reproduce
 
@@ -62,9 +89,12 @@ PYTHONPATH=src python benchmarks/run_context_benchmark.py --repo /path/to/repo -
 
 - `src/agent_sufficiency_system/core.py` — structural index, lazy tools, memory policy, context compiler.
 - `benchmarks/run_context_benchmark.py` — deterministic benchmark runner.
-- `results/results.json` — full machine-readable run.
+- `results/results.json` — context benchmark metadata and aggregate summary.
 - `results/results.csv` — per-turn measurements.
-- `results/REPORT.generated.md` — report generated directly from the latest benchmark run.
+- `results/REPORT.generated.md` — report generated directly from the latest context benchmark run.
+- `src/agent_sufficiency_system/capabilities.py` — search-first resolver and capability cache.
+- `benchmarks/run_capability_benchmark.py` — capability-reuse benchmark runner.
+- `results/capability_reuse/` — aggregate capability benchmark artifacts.
 
 ## Current-source research notes (checked 2026-09-23)
 
