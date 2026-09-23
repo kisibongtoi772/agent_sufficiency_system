@@ -169,10 +169,10 @@ The context layer minimizes **how much information the model processes**.
 
 | Phase | Goal | Status |
 |---|---|---|
-| **1. Context Sufficiency** | Structural retrieval + lazy tools + compact memory | ✅ Done |
-| **2. Capability Sufficiency** | Search-first resolver + capability cache | ✅ Prototype + benchmark |
-| **3. Live Capability Discovery** | Real package/MCP/skill/GitHub providers, semantic matching, compatibility scoring | 🚧 Next |
-| **4. End-to-End Validation** | Same real LLM across policies; measure pass@1, billed tokens, latency, tool calls, cost / solved task | ⏭ Planned |
+| **1. Context Sufficiency** | Structural retrieval + lazy tools + compact memory | Done |
+| **2. Capability Sufficiency** | Search-first resolver + capability cache | Prototype + benchmark complete |
+| **3. Live Capability Discovery** | Real package/MCP/skill/GitHub providers, semantic matching, compatibility scoring | Next |
+| **4. End-to-End Validation** | Same real LLM across policies; measure pass@1, billed tokens, latency, tool calls, cost / solved task | Planned |
 
 Longer-term: adaptive context budgets, learned routing, multi-language code indexing, and persistent capability quality scoring.
 
