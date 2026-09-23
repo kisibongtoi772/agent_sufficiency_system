@@ -1,0 +1,34 @@
+name: Live model routing benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "benchmarks/run_live_router_benchmark.py"
+      - ".github/workflows/live-router-benchmark.yml"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run live routing benchmark
+        run: |
+          python benchmarks/run_live_router_benchmark.py --out results/model_routing
+
+      - name: Upload benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-model-routing-results
+          path: results/model_routing
+          if-no-files-found: warn
