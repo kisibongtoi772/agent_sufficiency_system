@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "unique_capabilities": 30,
+    "repeats": 4,
+    "requests": 120,
+    "ecosystem_hits": 22,
+    "true_misses": 8,
+    "layers": ["repo", "package", "mcp", "skill", "github"],
+    "seed": 17,
+    "token_counter": "estimate_4chars",
+    "benchmark_note": "Offline deterministic capability-resolution benchmark. External catalogs are fixtures; artifact tokens are a transparent implementation-work proxy, not billed LLM tokens."
+  },
+  "summary": {
+    "build_every_time": {
+      "requests": 120,
+      "synthesis_events": 120,
+      "reuse_rate": 0.0,
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "search_probes": 0,
+      "mean_probes": 0.0,
+      "total_proxy_tokens": 233180,
+      "mean_proxy_tokens": 1943.2,
+      "mean_resolution_tokens": 16.8,
+      "mean_artifact_proxy_tokens": 1897.6,
+      "proxy_token_reduction_vs_build_every_time": 0.0,
+      "implementation_reduction_vs_build_every_time": 0.0,
+      "source_counts": {"synthesized": 120}
+    },
+    "search_first_stateless": {
+      "requests": 120,
+      "synthesis_events": 32,
+      "reuse_rate": 0.7333,
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "search_probes": 532,
+      "mean_probes": 4.4333,
+      "total_proxy_tokens": 75940,
+      "mean_proxy_tokens": 632.8,
+      "mean_resolution_tokens": 64.6,
+      "mean_artifact_proxy_tokens": 539.5,
+      "proxy_token_reduction_vs_build_every_time": 0.6743,
+      "implementation_reduction_vs_build_every_time": 0.7333,
+      "source_counts": {"github": 16, "mcp": 16, "package": 20, "repo": 20, "skill": 16, "synthesized": 32}
+    },
+    "search_first_build_cache": {
+      "requests": 120,
+      "synthesis_events": 8,
+      "reuse_rate": 0.9333,
+      "cache_hits": 24,
+      "cache_hit_rate": 0.2,
+      "search_probes": 412,
+      "mean_probes": 3.4333,
+      "total_proxy_tokens": 31366,
+      "mean_proxy_tokens": 261.4,
+      "mean_resolution_tokens": 63.3,
+      "mean_artifact_proxy_tokens": 169.3,
+      "proxy_token_reduction_vs_build_every_time": 0.8655,
+      "implementation_reduction_vs_build_every_time": 0.9333,
+      "source_counts": {"cache": 24, "github": 16, "mcp": 16, "package": 20, "repo": 20, "skill": 16, "synthesized": 8}
+    },
+    "search_first_learning": {
+      "requests": 120,
+      "synthesis_events": 8,
+      "reuse_rate": 0.9333,
+      "cache_hits": 90,
+      "cache_hit_rate": 0.75,
+      "search_probes": 223,
+      "mean_probes": 1.8583,
+      "total_proxy_tokens": 30811,
+      "mean_proxy_tokens": 256.8,
+      "mean_resolution_tokens": 58.6,
+      "mean_artifact_proxy_tokens": 169.3,
+      "proxy_token_reduction_vs_build_every_time": 0.8679,
+      "implementation_reduction_vs_build_every_time": 0.9333,
+      "source_counts": {"cache": 90, "github": 4, "mcp": 4, "package": 5, "repo": 5, "skill": 4, "synthesized": 8}
+    }
+  }
+}
