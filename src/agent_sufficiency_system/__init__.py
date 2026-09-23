@@ -1,5 +1,16 @@
-"""Token-efficient context compilation primitives for agent systems."""
+"""Agent sufficiency research primitives."""
 
+from .capabilities import (
+    Capability,
+    CapabilityCatalog,
+    CapabilityLibrary,
+    CapabilityRequest,
+    Resolution,
+    SearchFirstResolver,
+    adoption_artifact_proxy,
+    normalize_intent,
+    synthesis_artifact_proxy,
+)
 from .core import (
     CompactHistory,
     ContextPackage,
@@ -16,6 +27,15 @@ from .core import (
 )
 
 __all__ = [
+    "Capability",
+    "CapabilityCatalog",
+    "CapabilityLibrary",
+    "CapabilityRequest",
+    "Resolution",
+    "SearchFirstResolver",
+    "adoption_artifact_proxy",
+    "normalize_intent",
+    "synthesis_artifact_proxy",
     "CompactHistory",
     "ContextPackage",
     "FileRecord",
