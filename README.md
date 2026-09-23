@@ -2,9 +2,18 @@
 
 > **How little context does an agent actually need to solve a task well?**
 
-Agent Sufficiency System is a compact research prototype for **measuring and reducing the context overhead of tool-using agents**.
+Agent Sufficiency System is a compact research prototype for reducing **both the context an agent consumes and the amount of work it has to reinvent**.
 
-Instead of treating a large context window as free storage, the project treats model context as a scarce working set: retrieve only the code that matters, load only the tools that are needed, keep long-term state outside the prompt, and compile a small context package for each model call.
+Instead of treating a large context window as free storage—or treating every capability request as a fresh implementation problem—the system first asks whether enough capability already exists, then compiles only the minimum working context needed to use it.
+
+The project now studies a broader objective:
+
+```text
+Agent Sufficiency
+= minimum context
++ maximum capability reuse
++ minimum net-new reasoning
+```
 
 The current prototype focuses on coding-agent workloads, but the architecture is intentionally general.
 
@@ -30,6 +39,28 @@ Full methodology and limitations: **[REPORT.md](REPORT.md)**
 Raw per-turn measurements: **[results/results.csv](results/results.csv)**  
 Aggregate machine-readable results: **[results/results.json](results/results.json)**
 
+### Capability-reuse benchmark
+
+A second deterministic experiment evaluates the new **search-first capability resolver** over 30 unique capabilities repeated four times:
+
+| Metric | Build every time | Search-first learning | Change |
+|---|---:|---:|---:|
+| Total requests | 120 | 120 | same workload |
+| Net-new implementations | 120 | **8** | **-93.3%** |
+| Reuse rate | 0% | **93.3%** | +93.3 pp |
+| Local capability-cache hits | 0 | **90 / 120** | **75% of requests** |
+| Search probes | 0 | 223 | deliberate discovery cost |
+| Mean work-proxy tokens / request | 1,943 | **257** | **-86.8% total proxy work** |
+| Total work-proxy tokens | 233,180 | **30,811** | **-86.8%** |
+
+The 22 reusable capabilities are distributed across deterministic repo/package/MCP/skill/GitHub fixtures; eight capabilities are true misses and therefore require synthesis once. After adoption or synthesis, the learning policy stores compact capability metadata and resolves later requests from the local cache.
+
+**Important:** the proxy-token metric counts a deterministic plan/code/test/debug artifact. It is **not billed LLM usage**. The strongest structural result is implementation count: **120 → 8**.
+
+Capability benchmark report: **[results/capability_reuse/REPORT.md](results/capability_reuse/REPORT.md)**  
+Aggregate results: **[results/capability_reuse/results.json](results/capability_reuse/results.json)**  
+Summary table: **[results/capability_reuse/summary.csv](results/capability_reuse/summary.csv)**
+
 ---
 
 ## Why this exists
@@ -46,11 +77,12 @@ system prompt
 = increasingly expensive model call
 ```
 
-That creates three independent sources of waste:
+That creates four independent sources of waste:
 
 1. **Retrieval waste** — reading entire files when only one symbol and its dependencies matter.
 2. **Tool-schema waste** — sending dozens of irrelevant tool definitions on every turn.
 3. **Memory waste** — replaying old transcripts and tool payloads instead of a compact task checkpoint.
+4. **Reimplementation waste** — asking the model to design, code, test, and debug a capability that already exists or was already built earlier.
 
 The core hypothesis of this project is:
 
@@ -94,44 +126,53 @@ Only L1 is sent to the model. Everything else stays external and is paged in on 
 
 ```mermaid
 flowchart TD
-    A[User task] --> B[Context Compiler]
+    A[User task] --> R[Capability Resolver]
+
+    R --> R0[Local capability cache]
+    R0 -->|miss| R1[Current repo]
+    R1 -->|miss| R2[Package ecosystem]
+    R2 -->|miss| R3[MCP catalog]
+    R3 -->|miss| R4[Skills]
+    R4 -->|miss| R5[GitHub / OSS]
+    R5 -->|miss| S[Synthesize + validate]
+    S --> L[Capability library]
+
+    R0 -->|hit| B[Context Compiler]
+    R1 -->|hit| L
+    R2 -->|hit| L
+    R3 -->|hit| L
+    R4 -->|hit| L
+    R5 -->|hit| L
+    L --> B
 
     B --> C[Structural Code Index]
     B --> D[Lazy Tool Registry]
     B --> E[Compact History]
     B --> F[Stable System Prompt]
 
-    C --> C1[Exact symbol]
-    C --> C2[File + line range]
-    C --> C3[Imports]
-    C --> C4[Resolvable call neighbors]
-
-    D --> D1[Tool index]
-    D --> D2[Load code tools only]
-
-    E --> E1[Small checkpoint]
-    E --> E2[Recent-turn window]
-    E --> E3[Drop old tool payloads]
-
-    C1 --> G[Small Context Package]
-    C2 --> G
-    C3 --> G
-    C4 --> G
-    D1 --> G
-    D2 --> G
-    E1 --> G
-    E2 --> G
+    C --> G[Small Context Package]
+    D --> G
+    E --> G
     F --> G
 
     G --> H[Pluggable LLM / Agent Runtime]
 ```
 
-The repository currently implements the **context compiler side** of this diagram. It deliberately does not depend on a specific LLM SDK or orchestration framework.
+There are now two independent optimization loops:
+
+```text
+Capability loop: search -> adopt/build -> validate -> remember -> reuse
+Context loop:    retrieve -> budget -> compile -> model call -> checkpoint
+```
+
+The resolver reduces **how often the model must create something new**. The context compiler reduces **how much information the model must see when it does work**. Both layers remain independent of a specific LLM SDK or orchestration framework.
 
 ### Main components
 
 | Component | Purpose | Current implementation |
 |---|---|---|
+| Capability resolver | Search before synthesizing new functionality | Layered exact/alias catalogs |
+| Capability library | Reuse adopted/generated capabilities across later tasks | Compact local metadata cache |
 | Structural retrieval | Avoid whole-file / whole-repo context | Python AST symbol index |
 | Lazy tools | Avoid sending every tool schema | Tool index + code-tool loading |
 | Compact memory | Stop history from growing linearly | Checkpoint + recent-turn window |
@@ -139,7 +180,8 @@ The repository currently implements the **context compiler side** of this diagra
 | Context compiler | Assemble only the required working set | `TokenMinAgent.compile_context()` |
 | Token accounting | Measure each context component | `tiktoken` when installed, transparent fallback otherwise |
 
-Core implementation: **[`src/agent_sufficiency_system/core.py`](src/agent_sufficiency_system/core.py)**
+Core context implementation: **[`src/agent_sufficiency_system/core.py`](src/agent_sufficiency_system/core.py)**  
+Capability resolver: **[`src/agent_sufficiency_system/capabilities.py`](src/agent_sufficiency_system/capabilities.py)**
 
 ---
 
@@ -338,18 +380,25 @@ agent_sufficiency_system/
 ├── src/
 │   └── agent_sufficiency_system/
 │       ├── __init__.py
+│       ├── capabilities.py
 │       └── core.py
 │
 ├── benchmarks/
+│   ├── run_capability_benchmark.py
 │   └── run_context_benchmark.py
 │
 ├── tests/
+│   ├── test_capabilities.py
 │   └── test_core.py
 │
 └── results/
     ├── results.csv
     ├── results.json
-    └── REPORT.generated.md
+    ├── REPORT.generated.md
+    └── capability_reuse/
+        ├── results.json
+        ├── summary.csv
+        └── REPORT.md
 ```
 
 ---
@@ -379,6 +428,15 @@ PYTHONPATH=src python benchmarks/run_context_benchmark.py \
   --tasks 40 \
   --out results
 ```
+
+### Run the capability-reuse benchmark
+
+```bash
+PYTHONPATH=src python benchmarks/run_capability_benchmark.py \
+  --out results/capability_reuse
+```
+
+The runner also emits a raw per-request `results.csv` locally; the repository keeps compact aggregate artifacts under `results/capability_reuse/`.
 
 ### Benchmark another Python repository
 
@@ -419,7 +477,11 @@ Persist task facts and decisions as compact deltas. Do not carry old tool payloa
 
 Short, deterministic instructions are easier to cache and cheaper to reuse.
 
-### 6. Optimize for solved-task efficiency
+### 6. Search before synthesis
+
+Before generating a new tool or helper, search progressively through the capability cache, current repo, packages, MCPs, skills, and OSS. After a capability is validated, remember it so repeated work collapses to a cache lookup.
+
+### 7. Optimize for solved-task efficiency
 
 The eventual objective is not the smallest prompt at any cost. It is the lowest:
 
@@ -446,9 +508,16 @@ subject to quality staying constant.
 - [x] Deterministic 40-task benchmark
 - [x] Raw CSV + aggregate JSON artifacts
 - [x] Regression tests
+- [x] Search-first capability resolver
+- [x] Capability cache for adopted and synthesized functionality
+- [x] Deterministic capability-reuse benchmark
+- [x] Capability benchmark JSON/CSV/report artifacts
 
 ## Next steps
 
+- [ ] Replace capability benchmark fixtures with live package/MCP/skill/GitHub providers
+- [ ] Add semantic/embedding matching for non-exact capability requests
+- [ ] Add compatibility scoring before adopting third-party capabilities
 - [ ] Add a real LLM adapter while holding the model fixed across policies
 - [ ] Measure **task success / pass@1**, not only context coverage
 - [ ] Measure actual billed input/output tokens
