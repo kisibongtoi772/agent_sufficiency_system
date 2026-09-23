@@ -1,0 +1,5 @@
+policy,requests,synthesis_events,reuse_rate,cache_hits,cache_hit_rate,search_probes,mean_probes,total_proxy_tokens,mean_proxy_tokens,mean_resolution_tokens,mean_artifact_proxy_tokens,source_counts,proxy_token_reduction_vs_build_every_time,implementation_reduction_vs_build_every_time
+build_every_time,120,120,0.0,0,0.0,0,0.0,233180,1943.2,16.8,1897.6,"{""synthesized"": 120}",0.0,0.0
+search_first_stateless,120,32,0.7333,0,0.0,532,4.4333,75940,632.8,64.6,539.5,"{""github"": 16, ""mcp"": 16, ""package"": 20, ""repo"": 20, ""skill"": 16, ""synthesized"": 32}",0.6743,0.7333
+search_first_build_cache,120,8,0.9333,24,0.2,412,3.4333,31366,261.4,63.3,169.3,"{""cache"": 24, ""github"": 16, ""mcp"": 16, ""package"": 20, ""repo"": 20, ""skill"": 16, ""synthesized"": 8}",0.8655,0.9333
+search_first_learning,120,8,0.9333,90,0.75,223,1.8583,30811,256.8,58.6,169.3,"{""cache"": 90, ""github"": 4, ""mcp"": 4, ""package"": 5, ""repo"": 5, ""skill"": 4, ""synthesized"": 8}",0.8679,0.9333
